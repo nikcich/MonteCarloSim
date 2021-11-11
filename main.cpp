@@ -200,96 +200,56 @@ int FIFO(int wss, int data[]){
     return page_faults;
 }
 
+int find_element(vector<int> list, int num){ // returns index at which the element is located
+    int i = 0;
+    bool found = false;
+    for(auto it = list.begin(); it != list.end(); it++,i++ )    {
+        // found nth element..print and break.
+        if(*it == num) {
+            found = true;
+            break;
+        }
+    }
+    if(found)
+        return i;
+    else
+        return -1;
+}
+
 int Clock(int wss, int data[]){
     //pages in memory
-    list<int> s;
-    list<int> bits;
     int n = 1000;
-    unordered_set<int> setList;
-
-    // Start from initial page
+    vector<int> s;
+    vector<int> bits;
     int page_faults = 0;
     int pointer = 0;
 
-    for (int i=0; i<n; i++){
-        if (s.size() < wss){ // if its not full
-            s.push_back(data[i]); // add to mem
-
-            setList.insert(data[i]); // adds to set
-
-            bits.push_back(1); // set use bit to 1
-            page_faults++; // incrememnt page faults
-        }
-        
-        else{ // if its full
+    for(int i = 0; i < n; i++){
+        if(s.size() < wss && find_element(s, data[i]) == -1){ // Not full yet
+            s.push_back(data[i]);
+            bits.push_back(1);
+            page_faults++;
+        }else{ // Full
             bool inserted = false;
-            if(setList.find(data[i]) == setList.end()){ // not in mem
+            int index = find_element(s, data[i]);
+
+            if(index != -1){ // Already in memory
+                bits[index] = 1;
+            }else{ // not in memory
                 while(!inserted){
                     pointer = pointer%wss;
-                    list<int>::iterator current = bits.begin(); // bits pointer
-                    advance(current, pointer);
-
-                    if(*current == 1){ // If its use bit is a 1
-                        bits.remove(pointer); // gets rid of the 1 bit
-                        if(pointer < bits.size()-1){ // if its not the last element
-                            list<int>::iterator new_curr = bits.begin(); // bits pointer
-                            advance(new_curr, pointer);
-                            
-                            bits.insert(new_curr, 0); // replaces it with a 0
-                        }else{
-                            bits.push_back(0); // replaces with 0
-                        }
-                    }else{ // use bit is a zero same as above but replace with a 1 thijs time.
+                    int curr_bit = bits[pointer];
+                    if(curr_bit == 1){  // Bit is 1
+                        bits[pointer] = 0;
+                    }else{              // Bit is 0
+                        bits[pointer] = 1;
+                        s[pointer] = data[i];
                         inserted = true;
-                        bits.remove(pointer); // gets rid of the 0 bit
-                        if(pointer < bits.size()-1){ // if its not the last element
-                            list<int>::iterator new_curr = bits.begin(); // bits pointer
-                            advance(new_curr, pointer);
-                            
-                            bits.insert(new_curr, 1); // replaces it with a 1
-                        }else{
-                            bits.push_back(1); // replaces with 1
-                        }
-
-                        list<int>::iterator currList = s.begin();
-
-                        s.remove(pointer);
-
-                        if(pointer < s.size()-1){
-                            list<int>::iterator new_curr = s.begin(); // list pointer
-                            advance(new_curr, pointer);
-                            s.insert(new_curr, data[i]); // replaces it with a 1
-                        }else{
-                            s.push_back(data[i]);
-                        }
+                        page_faults++;
                     }
                     pointer++;
                 }
-                setList.insert(data[i]);
-            }else{ // already in mem
-                std::list<int>::iterator it;
-                int index = 0;
-                for (it = s.begin(); it != s.end(); ++it){
-                    if(*it == data[i]){
-                        break;
-                    }
-                    index++;
-                }
-
-                list<int>::iterator current = bits.begin(); // bits pointer
-                advance(current, index);
-
-                bits.remove(index); // gets rid of the 1 bit
-                if(index < bits.size()-1){ // if its not the last element
-                    list<int>::iterator new_curr = bits.begin(); // bits pointer
-                    advance(new_curr, index);    
-                    bits.insert(new_curr, 0); // replaces it with a 0
-                }else{
-                    bits.push_back(1);
-                }
-
-            } 
-            
+            }
         }
     }
 
