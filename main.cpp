@@ -61,9 +61,9 @@ int main(int argc, char *argv[]){
         // Labels for output
         cout << "wss: " << setw(2) << left << wss <<  " | " << setw(10) << right << "LRU" << setw(10) << right << "|   FIFO" << setw(10) << right << "|  Clock" << "   |" << endl;
         //output statistics in format
-        cout << right << setw(10) << " | " << right << setw(10) << LRUResults[wss];
-        cout << right << setw(3) << " |" << setw(7) << right << FIFOResults[wss];
-        cout << right << setw(3) << " |" << setw(7) << right << ClockResults[wss] << "   |";
+        cout << right << setw(10) << " | " << right << setw(10) << LRUResults[wss]/1000.0;
+        cout << right << setw(3) << " |" << setw(7) << right << FIFOResults[wss]/1000.0;
+        cout << right << setw(3) << " |" << setw(7) << right << ClockResults[wss]/1000.0 << "   |";
         cout << endl << "--------|-------------|---------|----------|" << endl;
     }
 
