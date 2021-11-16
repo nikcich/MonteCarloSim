@@ -1,38 +1,49 @@
+/*
+File Name: main.cpp
+Author: Nikolas Cichosz
+nrc170001
+Modification history: Nikolas Cichosz 11/14/2021
+
+to compile:     g++ main.cpp -o main
+to run:         ./main
+*/
+
 #include <iostream>
 #include <string>
 #include <random>
 #include<bits/stdc++.h>
 #include <iomanip>
 #include <list>
-
 #include <algorithm>
 
 using namespace std;
 
-int LRU(int wss, int data[]);
-int FIFO(int wss, int data[]);
-int Clock(int wss, int data[]);
+int LRU(int wss, int data[]);   // Function Prototype
+int FIFO(int wss, int data[]);  // Function Prototype
+int Clock(int wss, int data[]); // Function Prototype
 
 int main(int argc, char *argv[]){
 
-    default_random_engine generator;
-    normal_distribution<double> distribution(10.0, 2.0);
+    default_random_engine generator;                        // Random number generator
+    normal_distribution<double> distribution(10.0, 2.0);    // Normal distribution with mean of 10 and standard deviation of 2
 
-    /////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-    int LRUResults[21] = { 0 }; // page faults per working set size
-    int FIFOResults[21] = { 0 }; // page faults per working set size
-    int ClockResults[21] = { 0 }; // page faults per working set size
+    int LRUResults[21] = { 0 };                             // page faults per working set size
+    int FIFOResults[21] = { 0 };                            // page faults per working set size
+    int ClockResults[21] = { 0 };                           // page faults per working set size
 
-    for(int i = 0; i < 1000; i++ ){ // experiments loop
+    for(int i = 0; i < 1000; i++ ){                         // experiments loop
 
-        int data[1000];
+        int data[1000];                                     // Page numbers array
 
-        for(int j = 0; j < 1000; j++ ){ //Trace loop
+        for(int j = 0; j < 1000; j++ ){                     //Trace loop
+
             // Generate a random number from a normal distribution
             // with a mean of ten and a standard deviation of two.
             // There are ten regions which have their own base address.
-            data[j] = ( 10 * ((int) ( j / 100 )) ) + distribution(generator); // added my normal distribution generator
+
+            data[j] = ( 10 * ((int) ( j / 100 )) ) + distribution(generator); // Generates page number
         }
 
         for(int wss = 4; wss<=20; wss++ ){
@@ -40,15 +51,16 @@ int main(int argc, char *argv[]){
             // faults for each algorithm base on the current
             // working set size and the current trace.
 
-            LRUResults[wss] += LRU(wss, data);
-            FIFOResults [wss] += FIFO ( wss, data );
-            ClockResults[wss] += Clock( wss, data );
+            LRUResults[wss] += LRU(wss, data);              // Adds LRU page fault results to the accumulator for that working set size
+            FIFOResults [wss] += FIFO ( wss, data );        // Same as above but for FIFO
+            ClockResults[wss] += Clock( wss, data );        // Same but for Clock
         }
     }
 
     for(int wss=4; wss<=20; wss++ ){
+        // Labels for output
         cout << "wss: " << setw(2) << left << wss <<  " | " << setw(10) << right << "LRU" << setw(10) << right << "|   FIFO" << setw(10) << right << "|  Clock" << "   |" << endl;
-        //output statistics
+        //output statistics in format
         cout << right << setw(10) << " | " << right << setw(10) << LRUResults[wss];
         cout << right << setw(3) << " |" << setw(7) << right << FIFOResults[wss];
         cout << right << setw(3) << " |" << setw(7) << right << ClockResults[wss] << "   |";
@@ -59,199 +71,118 @@ int main(int argc, char *argv[]){
 }
 
 int LRU(int wss, int data[]){
-    int n = 1000;
+    int n = 1000;                                                   // Number of page numbers
+    unordered_set<int> s;                                           // Pages in memory
+    unordered_map<int, int> indexes;                                // Least recently used
+    int page_faults = 0;                                            // Initial page faults
 
-    // To represent set of current pages. We use
-    // an unordered_set so that we quickly check
-    // if a page is present in set or not
-
-    // Set of pages in memory
-    unordered_set<int> s;
- 
-    // To store least recently used indexes
-    // of pages.
-
-    // Least recently used indexes
-    unordered_map<int, int> indexes;
- 
-    // Start from initial page
-    int page_faults = 0;
-
-    for (int i=0; i<n; i++){
-        // Check if the set can hold more pages
-        if (s.size() < wss){
-            // Insert it into set if not present
-            // already which represents page fault
-            if(s.find(data[i])==s.end()){
-                s.insert(data[i]);
-                // increment page fault
-                page_faults++;
+    for (int i=0; i<n; i++){                                        // Loop through page nums
+        if (s.size() < wss){                                        // If mem is not full
+            if(s.find(data[i])==s.end()){                           // If its not already in memory
+                s.insert(data[i]);                                  // Add to mem
+                page_faults++;                                      // increment page fault
             }
- 
-            // Store the recently used index of
-            // each page
-            indexes[data[i]] = i;
-        }
- 
-        // If the set is full then need to perform lru
-        // i.e. remove the least recently used page
-        // and insert the current page
-        else{
-            // Check if current page is not already
-            // present in the set
-            if (s.find(data[i]) == s.end()){
-                // Find the least recently used pages
-                // that is present in the set
-                int lru = INT_MAX;
-                int val;
-                for (auto it = s.begin(); it != s.end(); it++){
-                    if (indexes[*it] < lru){
-                        lru = indexes[*it];
-                        val = *it;
+            indexes[data[i]] = i;                                   // Store LRU index of page
+        }else{                                                      // If memory is full
+            if (s.find(data[i]) == s.end()){                        // If its not already in memory
+                int lru = INT_MAX;                                  // LRU index
+                int val;                                            // LRU Value
+                for (auto it = s.begin(); it != s.end(); it++){     // Loop through memory
+                    if (indexes[*it] < lru){                        // If its less used than current LRU index
+                        lru = indexes[*it];                         // change LRU index
+                        val = *it;                                  // change LRU value
                     }
                 }
- 
-                // Remove the indexes page
-                s.erase(val);
- 
-                // insert the current page
-                s.insert(data[i]);
- 
-                // Increment page faults
-                page_faults++;
+                s.erase(val);                                       // Get rid of the page from memory
+                s.insert(data[i]);                                  // Add new page num
+                page_faults++;                                      // Increment page fault
             }
- 
-            // Update the current page index
-            indexes[data[i]] = i;
+            indexes[data[i]] = i;                                   // Update the current page index
         }
     }
- 
-    return page_faults;
+    return page_faults;                                             // Return page fault number
 }
 
 int FIFO(int wss, int data[]){
-
-    //int n = sizeof(data)/sizeof(data[0]);
-    int n = 1000; // i think?
-
-    // data = pages[]
-    // n = n
-    // wss = capacity
-
-
-    // To represent set of current pages. We use
-    // an unordered_set so that we quickly check
-    // if a page is present in set or not
-    unordered_set<int> s;
+    int n = 1000;                                       // Page numbers
+    unordered_set<int> s;                               // Items in memory
+    queue<int> indexes;                                 // Queue for fifo
   
-    // To store the pages in FIFO manner
-    queue<int> indexes;
-  
-    // Start from initial page
-    int page_faults = 0;
-    for (int i=0; i<n; i++){
-        // Check if the set can hold more pages
-        if (s.size() < wss){
-            // Insert it into set if not present
-            // already which represents page fault
-            if (s.find(data[i])==s.end()){
-                // Insert the current page into the set
-                s.insert(data[i]);
-  
-                // increment page fault
-                page_faults++;
-  
-                // Push the current page into the queue
-                indexes.push(data[i]);
+    int page_faults = 0;                                // Initialize page faults
+    for (int i=0; i<n; i++){                            // Loop through page numbers
+        if (s.size() < wss){                            // If mem is not full
+            if (s.find(data[i])==s.end()){              // If its not already in memory
+                s.insert(data[i]);                      // Insert page into the mem
+                page_faults++;                          // Increment page faults
+                indexes.push(data[i]);                  // Add page to queue
             }
-        }
-  
-        // If the set is full then need to perform FIFO
-        // i.e. remove the first page of the queue from
-        // set and queue both and insert the current page
-        else{
-            // Check if current page is not already
-            // present in the set
-            if (s.find(data[i]) == s.end()){
-                // Store the first page in the 
-                // queue to be used to find and
-                // erase the page from the set
-                int val = indexes.front();
-                  
-                // Pop the first page from the queue
-                indexes.pop();
-  
-                // Remove the indexes page from the set
-                s.erase(val);
-  
-                // insert the current page in the set
-                s.insert(data[i]);
-  
-                // push the current page into
-                // the queue
-                indexes.push(data[i]);
-  
-                // Increment page faults
-                page_faults++;
+        }else{                                          // If mem is full then do FIFO
+            if (s.find(data[i]) == s.end()){            // if its not already in mem
+                int val = indexes.front();              // Get first page
+                indexes.pop();                          // remove first item from queue
+                s.erase(val);                           // remove val from the set of pages
+                s.insert(data[i]);                      // Add to the set
+                indexes.push(data[i]);                  // Add page to queue
+                page_faults++;                          // Incrememnt page fault
             }
         }
     }
   
-    return page_faults;
+    return page_faults;                                 // return page faults
 }
 
-int find_element(vector<int> list, int num){ // returns index at which the element is located
-    int i = 0;
-    bool found = false;
-    for(auto it = list.begin(); it != list.end(); it++,i++ )    {
-        // found nth element..print and break.
-        if(*it == num) {
-            found = true;
-            break;
+int find_element(vector<int> list, int num){        // returns index at which the element is located
+    int i = 0;                                      // index
+    bool found = false;                             // Found boolean starts at false
+    for(auto it = list.begin(); it != list.end(); it++,i++ ){
+        
+        if(*it == num) {                            // If the pointer is the number we're looking for
+            found = true;                           // Set found to true
+            break;                                  // Break out of the loop
         }
     }
-    if(found)
-        return i;
-    else
-        return -1;
+
+    if(found)                                       // If we found the number we want
+        return i;                                   // return the index
+    else                                            // Didn't find the number
+        return -1;                                  // Return -1
 }
 
 int Clock(int wss, int data[]){
-    //pages in memory
-    int n = 1000;
-    vector<int> s;
-    vector<int> bits;
-    int page_faults = 0;
-    int pointer = 0;
+    int n = 1000;                                   // how many page numbers
+    vector<int> s;                                  // vector for memory
+    vector<int> bits;                               // Use bits for each memory location
+    int page_faults = 0;                            // Number of page faults
+    int pointer = 0;                                // Clock hand pointer location
 
-    for(int i = 0; i < n; i++){
+    for(int i = 0; i < n; i++){                     // Loop through each page number given
         if(s.size() < wss && find_element(s, data[i]) == -1){ // Not full yet
-            s.push_back(data[i]);
-            bits.push_back(1);
-            page_faults++;
-        }else{ // Full
-            bool inserted = false;
-            int index = find_element(s, data[i]);
+            s.push_back(data[i]);                   // Put the page in memory
+            bits.push_back(1);                      // Use bit set to 1
+            page_faults++;                          // Incremement page fault
+        }else{                                      // If mem is full
+            bool inserted = false;                  // Inserted starts at
+            int index = find_element(s, data[i]);   // Get element index via function find_element()
 
-            if(index != -1){ // Already in memory
-                bits[index] = 1;
-            }else{ // not in memory
-                while(!inserted){
-                    pointer = pointer%wss;
-                    int curr_bit = bits[pointer];
-                    if(curr_bit == 1){  // Bit is 1
-                        bits[pointer] = 0;
-                    }else{              // Bit is 0
-                        bits[pointer] = 1;
-                        s[pointer] = data[i];
-                        inserted = true;
-                        page_faults++;
+            if(index != -1){                        // If its already in memory
+                bits[index] = 1;                    // Change the use bit for that mem location to 1
+            }else{                                  // If its not in memory
+                while(!inserted){                   // Until it has been inserted
+                    pointer = pointer%wss;          // Make sure pointer is within possible index values and loop around
+                    int curr_bit = bits[pointer];   // Current index bit value
+                    if(curr_bit == 1){              // If Bit is 1
+                        bits[pointer] = 0;          // Set to 0
+                    }else{                          // If Bit is 0
+                        bits[pointer] = 1;          // Set bit to 1
+                        s[pointer] = data[i];       // Swap old page with new page
+                        inserted = true;            // Inserted is true
+                        page_faults++;              // Increment page fault
                     }
-                    pointer++;
+                    pointer++;                      // Increment pointer
                 }
             }
         }
     }
 
-    return page_faults;
+    return page_faults;                              // Return page faults
 }
